@@ -1,0 +1,48 @@
+---
+title: "Hoang's Replication"
+date: October 13, 2017 
+output: pdf_document
+---
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# setup
+library(dplyr); library(tidyr); library(knitr); library(zoo)
+load("171013_WCData_m.RData")
+
+# clean data to match paper time period
+df.cln <- df.Hrep.m %>% 
+  filter(Date >= 'Jul 1963' & Date <= 'Dec 2008')
+
+# function
+Table_Sum <- function(df) {
+  # replicate MS12 Table 2
+
+  # set ordering for sorting
+  Stat.Order <- c("Mean", "Std", "Min", "Max", "Auto1")
+  Port.Order <-  colnames(df)[-1] # skip Date
+
+    table.sum.basic <- df %>%
+    summarise_each(funs(Mean=mean(., na.rm=TRUE),
+                        Std=sd(., na.rm=TRUE),
+                        Min=min(.),
+                        Max=max(.),
+                        Auto1=cor(.,lag(., 1),use="pairwise.complete.obs")),
+                   -Date) %>%
+    gather(variable, value) %>%
+    separate(variable, c("Var", "stat"), sep = "\\_") %>%
+    mutate(stat=factor(stat, levels = Stat.Order)) %>% # sort stat order
+    arrange(stat) %>%
+    spread(stat, value) %>%
+    mutate_each(funs(sprintf("%.3f", round(.,3))), -Var) %>% # format
+    mutate(Var=factor(Var, levels = Port.Order)) %>% # sort port order
+    arrange(Var)
+
+  return(table.sum.basic)
+}
+```
+
+# Replicate MS12 Table 2 (Summary Stats)
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+kable(Table_Sum(df.cln), align='c')
+```
+
