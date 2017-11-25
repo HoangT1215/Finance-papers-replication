@@ -6,9 +6,12 @@ output: pdf_document
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # setup
-library(dplyr); library(tidyr); library(knitr); library(zoo); library(sandwich); library(lmtest); library(broom); library(gmm);
+install.packages("tidyverse")
+
+
+library(dplyr); library(tidyr); library(knitr); library(zoo); library(sandwich); library(lmtest); library(broom); library(gmm); library(tidyverse)
 data(Finance)
-load("171013_WCData_m.RData")
+load("data/171013_WCData_m.RData")
 
 # clean data to match paper time period
 df.cln <- df.Hrep.m %>% 
@@ -54,7 +57,7 @@ Table_3 <- df.cln
 Table_3$log_return <- log(df.cln$Mkt+1, base = exp(1))
 
 summary(lm(Table_3$log_return~Table_3$TERM, data=df.cln))
-lm(Table_3$log_return ~ lag(TERM), df.cln)
+
 # regression with TERM
 model <- lm(Table_3$log_return ~ lag(TERM), df.cln)
 reg_TERM <- tidy(coeftest(model, NeweyWest(model, lag = 1, prewhite = FALSE)))
@@ -82,19 +85,30 @@ View(total)
 # Table 6 replication
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
-SB25 <- read.csv("25_Portfolios_5x5.CSV", header=TRUE, sep=",")
-ME25 <- read.csv("25_Portfolios_ME_Prior_12_2.CSV")
-df.fin <- data.frame(rm=Finance[1:500,"rm"], rf=Finance[1:500,"rf"])
-summary(gmm(rm ~ rf, ~rf, data=df.fin))
+SB25 <- read.csv("data/25_Portfolios_5x5.CSV", header=TRUE, sep=",")
+ME25 <- read.csv("data/25_Portfolios_ME_Prior_12_2.CSV", header=TRUE, sep=",")
+print(SB25)
+
+
+```
+
+# Test replication with 5 Portfolio
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+monthly5 <- read.csv("data/5 portfolio monthly.csv")
+print(monthly5)
+summary(gmm(Mkt.RF ~ RF, ~RF, data=monthly5))
 
 # standard approach
 g <- function(theta, x) {
-  m.1 <- x[,"rm"] - theta[1] - theta[2]*x[,"rf"]
-  m.z <- (x[,"rm"] - theta[1] - theta[2]*x[,"rf"])*x[,"rf"]
+  m.1 <- x[,"Mkt.RF"] - theta[1]
+  m.z <- m.1*x[,"RF"]
   f <- cbind(m.1, m.z)
   return(f)
 }
-summary(gmm(g, df.fin, t0=c(0,0), method = "BFGS", control=list(fnscale=1e-8)))
-summary(gmm(g, df.fin, t0=c(0,0), method = "BFGS", control=list(fnscale=1e-8), kernel="Bartlett", bw=bwNeweyWest))
+
+summary(gmm(g, monthly5, t0=c(0,0), method = "BFGS", control=list(fnscale=1e-8)))
+summary(gmm(g, monthly5, t0=c(0,0), method = "BFGS", control=list(fnscale=1e-8), kernel="Bartlett", bw=bwNeweyWest))
+
 
 ```
