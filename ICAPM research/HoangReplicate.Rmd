@@ -6,9 +6,6 @@ output: pdf_document
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # setup
-install.packages("tidyverse")
-
-
 library(dplyr); library(tidyr); library(knitr); library(zoo); library(sandwich); library(lmtest); library(broom); library(gmm); library(tidyverse)
 data(Finance)
 load("data/171013_WCData_m.RData")
@@ -51,35 +48,26 @@ kable(Table_Sum(df.cln), align='c')
 ```
 # Replicate MS12 Table 3
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# Running OLS regression over where the predictor is the x-variable and the market return next month is the y variable
 
-Table_3 <- df.cln
 # Create a column with log(mkt+1)
-Table_3$log_return <- log(df.cln$Mkt+1, base = exp(1))
+df.cln$log_mkt <- log(df.cln$Mkt+1, base = exp(1))
 
-summary(lm(Table_3$log_return~Table_3$TERM, data=df.cln))
+summ <- data.frame()
+col <- data.frame()
+col_name <- c("TERM", "DEF", "DY", "RF", "PE", "CP")
 
-# regression with TERM
-model <- lm(Table_3$log_return ~ lag(TERM), df.cln)
-reg_TERM <- tidy(coeftest(model, NeweyWest(model, lag = 1, prewhite = FALSE)))
-# regression with DEF
-model <- lm(Table_3$log_return ~ lag(DEF), df.cln)
-reg_DEF <- tidy(coeftest(model, NeweyWest(model, lag = 1, prewhite = FALSE)))
-# regression with DY
-model <- lm(Table_3$log_return ~ lag(DY), df.cln)
-reg_DY <- tidy(coeftest(model, NeweyWest(model, lag = 1, prewhite = FALSE)))
-# regression with RF
-model <- lm(Table_3$log_return ~ lag(RF), df.cln)
-reg_RF <- tidy(coeftest(model, NeweyWest(model, lag = 1, prewhite = FALSE)))
-# regression with PE
-model <- lm(Table_3$log_return ~ lag(PE), df.cln)
-reg_PE <- tidy(coeftest(model, NeweyWest(model, lag = 1, prewhite = FALSE)))
-# regression with CP
-model <- lm(Table_3$log_return ~ lag(CP), df.cln)
-reg_CP <- tidy(coeftest(model, NeweyWest(model, lag = 1, prewhite = FALSE)))
+for (i in c(1:6)){ # run regression over 6 factors
+  col <- df.cln[,i+2]
+  new_model <- lm(log_mkt ~ lag(col), df.cln)
+  reg <- tidy(coeftest(new_model, NeweyWest(new_model, lag = 1, prewhite = FALSE)))
+  new_total <- rbind(reg[2,], summ) # synthesize data
+}
 
-#Synthesize data
-total <- rbind(reg_TERM[2,],reg_DEF[2,],reg_DY[2,],reg_RF[2,],reg_PE[2,],reg_CP[2,]) # Intercept removed
-View(total)
+# arrange(Var), then attach name vector
+
+
+View(new_total)
 ```
 
 # Table 6 replication
