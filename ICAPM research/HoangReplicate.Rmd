@@ -6,7 +6,8 @@ output: pdf_document
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # setup
-library(dplyr); library(tidyr); library(knitr); library(zoo); library(sandwich); library(lmtest); library(broom); library(gmm); library(tidyverse)
+install.packages("shiny")
+library(dplyr); library(tidyr); library(knitr); library(zoo); library(sandwich); library(lmtest); library(broom); library(gmm); library(tidyverse); library(shiny);
 data(Finance)
 load("data/171013_WCData_m.RData")
 
@@ -53,7 +54,6 @@ kable(Table_Sum(df.cln), align='c')
 # Create a column with log(mkt+1)
 df.cln$log_mkt <- log(df.cln$Mkt+1, base = exp(1))
 
-summ <- data.frame()
 col <- data.frame()
 col_name <- c("TERM", "DEF", "DY", "RF", "PE", "CP")
 
@@ -63,11 +63,22 @@ for (i in c(1:6)){ # run regression over 6 factors
   reg <- tidy(coeftest(new_model, NeweyWest(new_model, lag = 1, prewhite = FALSE)))
   new_total <- rbind(reg[2,], new_total) # synthesize data
 }
-new_total$term <- col_
-View(new_total)
+new_total$term <- col_name
+table_3 <- new_total
+View(table_3) # the final table
+rownames(table_3) <- NULL
 ```
 
 # Table 6 replication
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+kable(table_3, align = 'c')
+```
+```{r}
+renderTable({
+  head(table_3)
+})
+```
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 SB25 <- read.csv("data/25_Portfolios_5x5.CSV", header=TRUE, sep=",")
@@ -92,8 +103,7 @@ g <- function(theta, x) {
   return(f)
 }
 
-summary(gmm(g, monthly5, t0=c(0,0), method = "BFGS", control=list(fnscale=1e-8)))
-summary(gmm(g, monthly5, t0=c(0,0), method = "BFGS", control=list(fnscale=1e-8), kernel="Bartlett", bw=bwNeweyWest))
+port_5 <- summary(gmm(g, monthly5, t0=c(0,0), method = "BFGS", control=list(fnscale=1e-8)))
 
 
 ```
